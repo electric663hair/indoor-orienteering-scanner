@@ -217,6 +217,12 @@ export default function HomePage() {
                 </>
               )}
             </Button>
+            <Link href="/import">
+              <Button size="lg" variant="outline" className="gap-2 bg-transparent">
+                <QrCode className="h-5 w-5" />
+                Import Run
+              </Button>
+            </Link>
             <Link href="/create">
               <Button size="lg" className="gap-2">
                 <Plus className="h-5 w-5" />
