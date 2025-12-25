@@ -591,7 +591,7 @@ export default function PlayPage() {
                           isCompletedScan ? "bg-green-500/20 text-green-600" : "bg-primary/10 text-primary"
                         }`}
                       >
-                        {index + 1}
+                        {index === 0 ? "Start" : index}
                       </div>
                       <div className="flex-1 break-all font-medium text-card-foreground">{entry}</div>
                       {isCompletedScan && <CheckCircle2 className="h-5 w-5 text-green-600" />}
