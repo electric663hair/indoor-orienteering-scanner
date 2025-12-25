@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Trophy, Trash2, ChevronDown, ChevronUp, Download } from "lucide-react"
+import { ArrowLeft, Trophy, Trash2, ChevronDown, ChevronUp, Download, Share2, ShareIcon } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import QRCode from "qrcode"
@@ -13,8 +13,8 @@ import jsPDF from "jspdf"
 interface SharedRun {
   id: string
   runnerName: string
-  sequenceId: string
-  sequenceName: string
+  courseId: string
+  courseName: string
   finalTime: number
   correctScans: Array<{
     data: string
@@ -24,19 +24,19 @@ interface SharedRun {
   completedAt: number
 }
 
-interface SavedSequence {
+interface SavedCourse {
   id: string
   name: string
   entries: string[]
   createdAt: number
 }
 
-export default function SequenceRunsPage() {
+export default function CourseRunsPage() {
   const params = useParams()
   const router = useRouter()
-  const sequenceId = params.id as string
+  const courseId = params.id as string
   const [runs, setRuns] = useState<SharedRun[]>([])
-  const [sequence, setSequence] = useState<SavedSequence | null>(null)
+  const [course, setCourse] = useState<SavedCourse | null>(null)
   const [isAdminMode, setIsAdminMode] = useState(false)
   const [showAdminQrCodes, setShowAdminQrCodes] = useState(true)
 
@@ -44,32 +44,32 @@ export default function SequenceRunsPage() {
     const adminMode = localStorage.getItem("admin") === "true" // Check for admin mode
     setIsAdminMode(adminMode)
 
-    // Load sequence details
-    const savedSequences = localStorage.getItem("saved-courses")
-    if (savedSequences) {
-      const sequences: SavedSequence[] = JSON.parse(savedSequences)
-      const foundSequence = sequences.find((s) => s.id === sequenceId)
-      if (foundSequence) {
-        setSequence(foundSequence)
+    // Load course details
+    const savedCourses = localStorage.getItem("saved-courses")
+    if (savedCourses) {
+      const courses: SavedCourse[] = JSON.parse(savedCourses)
+      const foundCourse = courses.find((s) => s.id === courseId)
+      if (foundCourse) {
+        setCourse(foundCourse)
       } else {
         router.push("/")
         return
       }
     }
 
-    // Load runs for this sequence
-    const localRunsKey = `local-runs-${sequenceId}`
+    // Load runs for this course
+    const localRunsKey = `local-runs-${courseId}`
     const savedRuns = localStorage.getItem(localRunsKey)
     if (savedRuns) {
       const loadedRuns: SharedRun[] = JSON.parse(savedRuns)
       setRuns(loadedRuns)
     }
-  }, [sequenceId, router])
+  }, [courseId, router])
 
   const handleDelete = (runId: string) => {
     const updated = runs.filter((r) => r.id !== runId)
     setRuns(updated)
-    const localRunsKey = `local-runs-${sequenceId}`
+    const localRunsKey = `local-runs-${courseId}`
     localStorage.setItem(localRunsKey, JSON.stringify(updated))
   }
 
@@ -78,8 +78,8 @@ export default function SequenceRunsPage() {
       const qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 1 })
       const link = document.createElement("a")
       link.href = qrDataUrl
-      const label = index === 0 ? "Start" : index === sequence!.entries.length - 1 ? "Finish" : `Control-${index}`
-      link.download = `${sequence!.name}-${label}-${data}.png`
+      const label = index === 0 ? "Start" : index === course!.entries.length - 1 ? "Finish" : `Control-${index}`
+      link.download = `${course!.name}-${label}-${data}.png`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -99,7 +99,7 @@ export default function SequenceRunsPage() {
   const sortedRuns = [...runs].sort((a, b) => a.finalTime - b.finalTime)
 
   const handleDownloadPDF = async () => {
-    if (!sequence) return
+    if (!course) return
 
     const pdf = new jsPDF({
       orientation: "portrait",
@@ -116,14 +116,14 @@ export default function SequenceRunsPage() {
     const rows = 5
 
     pdf.setFontSize(16)
-    pdf.text(sequence.name, pageWidth / 2, margin + 5, { align: "center" })
+    pdf.text(course.name, pageWidth / 2, margin + 5, { align: "center" })
 
     let currentX = margin
     let currentY = margin + 15
     let pageItemCount = 0
 
-    for (let index = 0; index < sequence.entries.length; index++) {
-      const data = sequence.entries[index]
+    for (let index = 0; index < course.entries.length; index++) {
+      const data = course.entries[index]
 
       // Check if we need to move to the next page (either by item count or by vertical space)
       if (pageItemCount >= cols * rows || currentY + qrSize + 10 > pageHeight - margin) {
@@ -141,7 +141,7 @@ export default function SequenceRunsPage() {
         pdf.text(data, currentX + qrSize / 2, currentY + qrSize + 3, { align: "center" })
 
         pdf.setFontSize(7)
-        const label = index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""
+        const label = index === 0 ? "Start" : index === course.entries.length - 1 ? "Finish" : ""
         pdf.text(label, currentX + qrSize / 2, currentY + qrSize + 6, { align: "center" })
       } catch (error) {
         console.error("Error generating QR code for PDF:", error)
@@ -156,7 +156,7 @@ export default function SequenceRunsPage() {
       }
     }
 
-    pdf.save(`${sequence.name}-qr-codes.pdf`)
+    pdf.save(`${course.name}-qr-codes.pdf`)
   }
 
   const getLegColor = (controlIndex: number, timeFromLast: number) => {
@@ -226,17 +226,17 @@ export default function SequenceRunsPage() {
   }
 
   const getShareUrl = () => {
-    if (!sequence) return ""
-    const encodedEntries = encodeURIComponent(JSON.stringify(sequence.entries))
-    const encodedName = encodeURIComponent(sequence.name)
-    return `${typeof window !== "undefined" ? window.location.origin : ""}?course=${encodedEntries}&name=${encodedName}&id=${sequence.id}`
+    if (!course) return ""
+    const encodedEntries = encodeURIComponent(JSON.stringify(course.entries))
+    const encodedName = encodeURIComponent(course.name)
+    return `${typeof window !== "undefined" ? window.location.origin : ""}?course=${encodedEntries}&name=${encodedName}&id=${course.id}`
   }
 
-  if (!sequence) {
+  if (!course) {
     return null
   }
 
-  const numControls = sequence.entries.length
+  const numControls = course.entries.length
 
   return (
     <main className="min-h-screen bg-background p-4 md:p-8">
@@ -249,7 +249,7 @@ export default function SequenceRunsPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">{sequence.name}</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">{course.name}</h1>
               <p className="mt-1 text-muted-foreground">All runs completed on this device</p>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function SequenceRunsPage() {
           </div>
         </div>
 
-        {isAdminMode && sequence && (
+        {isAdminMode && course && (
           <Card className="border-2 border-primary/20">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -295,7 +295,7 @@ export default function SequenceRunsPage() {
             {showAdminQrCodes && (
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {sequence.entries.map((data, index) => (
+                  {course.entries.map((data, index) => (
                     <div key={index} className="flex flex-col items-center gap-2 rounded-lg border bg-card p-4">
                       <div className="rounded-lg bg-white p-2">
                         <QRCodeCanvas value={data} size={120} />
@@ -303,7 +303,7 @@ export default function SequenceRunsPage() {
                       <div className="text-center">
                         <div className="mt-1 font-mono text-sm font-bold">{data}</div>
                         <div className="text-xs font-semibold text-muted-foreground">
-                          {index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""}
+                          {index === 0 ? "Start" : index === course.entries.length - 1 ? "Finish" : ""}
                         </div>
                       </div>
                       <Button
@@ -335,12 +335,15 @@ export default function SequenceRunsPage() {
               <QRCodeCanvas value={getShareUrl()} size={200} />
             </div>
             <Button
-              onClick={() => handleDownloadQRCode(getShareUrl(), -1)}
+              onClick={e => {
+                navigator.clipboard.writeText(getShareUrl());
+                e.target.innerHTML = "Link Copied"
+              }}
               variant="outline"
               className="gap-2 bg-transparent"
             >
-              <Download className="h-4 w-4" />
-              Download Course QR Code
+              <Share2 className="h-4 w-4" />
+              Share Course with Link
             </Button>
           </CardContent>
         </Card>
@@ -376,9 +379,9 @@ export default function SequenceRunsPage() {
                       {/* <TableHead className="w-[60px]">Rank</TableHead> */}
                       <TableHead className="min-w-[150px]">Runner</TableHead>
                       <TableHead className="w-[120px]">Total Time</TableHead>
-                      {sequence.entries.map((data, index) => (
+                      {course.entries.map((data, index) => (
                         <TableHead key={index} className="min-w-[100px] text-center">
-                          {`${index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : index} - [${data}]`}
+                          {`${index === 0 ? "Start" : index === course.entries.length - 1 ? "Finish" : index} - [${data}]`}
                         </TableHead>
                       ))}
                       <TableHead className="w-[60px]"></TableHead>
