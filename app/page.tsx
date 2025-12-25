@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import QRCode from "qrcode" // Import QRCode library directly
 
-interface SavedSequence {
+interface SavedCourse {
   id: string
   name: string
   entries: string[]
@@ -26,14 +26,14 @@ interface SavedSequence {
 }
 
 export default function HomePage() {
-  const [sequences, setSequences] = useState<SavedSequence[]>([])
+  const [courses, setCourses] = useState<SavedCourse[]>([])
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [showQrCodes, setShowQrCodes] = useState(false) // Single global toggle for all sequences
+  const [showQrCodes, setShowQrCodes] = useState(false) // Single global toggle for all courses
   const [duplicateDialog, setDuplicateDialog] = useState<{
     open: boolean
-    existingSequence: SavedSequence | null
-    newSequence: { name: string; entries: string[]; id: string } | null
-  }>({ open: false, existingSequence: null, newSequence: null })
+    existingCourse: SavedCourse | null
+    newCourse: { name: string; entries: string[]; id: string } | null
+  }>({ open: false, existingCourse: null, newCourse: null })
   const [newName, setNewName] = useState("")
   const [showNameDialog, setShowNameDialog] = useState(false)
   const [runnerName, setRunnerName] = useState("")
@@ -42,46 +42,46 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    const saved = localStorage.getItem("saved-sequences")
-    const loadedSequences = saved ? JSON.parse(saved) : []
-    setSequences(loadedSequences)
+    const saved = localStorage.getItem("saved-courses")
+    const loadedCourses = saved ? JSON.parse(saved) : []
+    setCourses(loadedCourses)
 
     const params = new URLSearchParams(window.location.search)
-    const sharedSequence = params.get("sequence")
+    const sharedCourse = params.get("course")
     const sharedName = params.get("name")
     const sharedId = params.get("id")
 
-    if (sharedSequence && sharedId) {
+    if (sharedCourse && sharedId) {
       try {
-        const decodedSequence = JSON.parse(decodeURIComponent(sharedSequence))
-        const name = sharedName ? decodeURIComponent(sharedName) : "Shared Sequence"
+        const decodedCourse = JSON.parse(decodeURIComponent(sharedCourse))
+        const name = sharedName ? decodeURIComponent(sharedName) : "Shared Course"
 
-        if (Array.isArray(decodedSequence) && decodedSequence.length > 0) {
-          const existingSequence = loadedSequences.find((s: SavedSequence) => s.id === sharedId)
+        if (Array.isArray(decodedCourse) && decodedCourse.length > 0) {
+          const existingCourse = loadedCourses.find((s: SavedCourse) => s.id === sharedId)
 
-          if (existingSequence) {
+          if (existingCourse) {
             setDuplicateDialog({
               open: true,
-              existingSequence,
-              newSequence: { name, entries: decodedSequence, id: sharedId },
+              existingCourse: existingCourse,
+              newCourse: { name, entries: decodedCourse, id: sharedId },
             })
             setNewName(`${name} (Copy)`)
           } else {
-            const newSequence: SavedSequence = {
+            const newCourse: SavedCourse = {
               id: sharedId,
               name,
-              entries: decodedSequence,
+              entries: decodedCourse,
               createdAt: Date.now(),
             }
-            const updated = [...loadedSequences, newSequence]
-            setSequences(updated)
-            localStorage.setItem("saved-sequences", JSON.stringify(updated))
+            const updated = [...loadedCourses, newCourse]
+            setCourses(updated)
+            localStorage.setItem("saved-courses", JSON.stringify(updated))
           }
 
           window.history.replaceState({}, "", "/")
         }
       } catch (e) {
-        console.error("Failed to parse shared sequence:", e)
+        console.error("Failed to parse shared course:", e)
       }
     }
 
@@ -95,61 +95,61 @@ export default function HomePage() {
   }, [])
 
   const handleDelete = (id: string) => {
-    const updated = sequences.filter((s) => s.id !== id)
-    setSequences(updated)
-    localStorage.setItem("saved-sequences", JSON.stringify(updated))
+    const updated = courses.filter((s) => s.id !== id)
+    setCourses(updated)
+    localStorage.setItem("saved-courses", JSON.stringify(updated))
   }
 
   const handlePlay = (entries: string[], name: string, id: string) => {
-    localStorage.setItem("qr-sequence", JSON.stringify(entries))
-    localStorage.setItem("current-sequence-name", name)
-    localStorage.setItem("current-sequence-id", id)
+    localStorage.setItem("qr-course", JSON.stringify(entries))
+    localStorage.setItem("current-course-name", name)
+    localStorage.setItem("current-course-id", id)
     router.push("/play")
   }
 
-  const handleShare = (sequence: SavedSequence) => {
-    const shareUrl = getShareUrl(sequence)
+  const handleShare = (course: SavedCourse) => {
+    const shareUrl = getShareUrl(course)
     navigator.clipboard.writeText(shareUrl)
-    setCopiedId(sequence.id)
+    setCopiedId(course.id)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
   const handleDuplicateAction = (action: "copy" | "replace" | "keep") => {
-    if (!duplicateDialog.newSequence || !duplicateDialog.existingSequence) return
+    if (!duplicateDialog.newCourse || !duplicateDialog.existingCourse) return
 
-    let updated = [...sequences]
+    let updated = [...courses]
 
     if (action === "copy") {
-      const newSequence: SavedSequence = {
+      const newCourse: SavedCourse = {
         id: crypto.randomUUID(),
         name: newName,
-        entries: duplicateDialog.newSequence.entries,
+        entries: duplicateDialog.newCourse.entries,
         createdAt: Date.now(),
       }
-      updated.push(newSequence)
+      updated.push(newCourse)
     } else if (action === "replace") {
       updated = updated.map((s) =>
-        s.id === duplicateDialog.existingSequence!.id
+        s.id === duplicateDialog.existingCourse!.id
           ? {
               ...s,
-              name: duplicateDialog.newSequence!.name,
-              entries: duplicateDialog.newSequence!.entries,
+              name: duplicateDialog.newCourse!.name,
+              entries: duplicateDialog.newCourse!.entries,
               createdAt: Date.now(),
             }
           : s,
       )
     }
 
-    setSequences(updated)
-    localStorage.setItem("saved-sequences", JSON.stringify(updated))
-    setDuplicateDialog({ open: false, existingSequence: null, newSequence: null })
+    setCourses(updated)
+    localStorage.setItem("saved-courses", JSON.stringify(updated))
+    setDuplicateDialog({ open: false, existingCourse: null, newCourse: null })
     setNewName("")
   }
 
-  const getShareUrl = (sequence: SavedSequence) => {
-    const encodedSequence = encodeURIComponent(JSON.stringify(sequence.entries))
-    const encodedName = encodeURIComponent(sequence.name)
-    return `${window.location.origin}?sequence=${encodedSequence}&name=${encodedName}&id=${sequence.id}`
+  const getShareUrl = (course: SavedCourse) => {
+    const encodedCourse = encodeURIComponent(JSON.stringify(course.entries))
+    const encodedName = encodeURIComponent(course.name)
+    return `${window.location.origin}?course=${encodedCourse}&name=${encodedName}&id=${course.id}`
   }
 
   const handleSaveRunnerName = () => {
@@ -178,7 +178,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">QR Code Run Tracker</h1>
-            <p className="mt-1 text-muted-foreground">Manage and play your saved QR code sequences</p>
+            <p className="mt-1 text-muted-foreground">Manage and play your saved QR code courses</p>
             {runnerName && (
               <div className="mt-2 flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
@@ -226,43 +226,43 @@ export default function HomePage() {
           </div>
         </div>
 
-        {sequences.length === 0 ? (
+        {courses.length === 0 ? (
           <Card className="border-2">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
                 <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="mb-2 text-xl font-semibold">No sequences yet</h3>
+              <h3 className="mb-2 text-xl font-semibold">No courses yet</h3>
               <p className="mb-6 text-center text-muted-foreground">
-                Create your first sequence to get started with QR code validation
+                Create your first course to get started with QR code validation
               </p>
               <Link href="/create">
                 <Button size="lg" className="gap-2">
                   <Plus className="h-5 w-5" />
-                  Create Sequence
+                  Create Course
                 </Button>
               </Link>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {sequences.map((sequence) => (
-              <Card key={sequence.id} className="border-2 transition-shadow hover:shadow-lg">
+            {courses.map((course) => (
+              <Card key={course.id} className="border-2 transition-shadow hover:shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-lg">{sequence.name}</CardTitle>
+                  <CardTitle className="text-lg">{course.name}</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {sequence.entries.length} {sequence.entries.length === 1 ? "code" : "codes"} •{" "}
-                    {new Date(sequence.createdAt).toLocaleDateString()}
+                    {course.entries.length} {course.entries.length === 1 ? "code" : "codes"} •{" "}
+                    {new Date(course.createdAt).toLocaleDateString()}
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {showQrCodes ? (
                     <div className="flex items-center justify-center rounded-lg border bg-white p-4">
-                      <QRCodeSVG value={getShareUrl(sequence)} size={200} level="M" />
+                      <QRCodeSVG value={getShareUrl(course)} size={200} level="M" />
                     </div>
                   ) : (
                     <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border bg-muted/30 p-2">
-                      {sequence.entries.map((entry, index) => (
+                      {course.entries.map((entry, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm">
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
                             {index + 1}
@@ -275,21 +275,21 @@ export default function HomePage() {
 
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handlePlay(sequence.entries, sequence.name, sequence.id)}
+                      onClick={() => handlePlay(course.entries, course.name, course.id)}
                       size="sm"
                       className="flex-1 gap-1"
                     >
                       <Play className="h-4 w-4" />
                       Play
                     </Button>
-                    <Link href={`/sequence-runs/${sequence.id}`}>
+                    <Link href={`/course-runs/${course.id}`}>
                       <Button size="sm" variant="outline" className="gap-1 bg-transparent">
                         <History className="h-4 w-4" />
                         Runs
                       </Button>
                     </Link>
-                    <Button onClick={() => handleShare(sequence)} size="sm" variant="outline" className="gap-1">
-                      {copiedId === sequence.id ? (
+                    <Button onClick={() => handleShare(course)} size="sm" variant="outline" className="gap-1">
+                      {copiedId === course.id ? (
                         <>
                           <Check className="h-4 w-4" />
                           Copied
@@ -302,7 +302,7 @@ export default function HomePage() {
                       )}
                     </Button>
                     <Button
-                      onClick={() => handleDelete(sequence.id)}
+                      onClick={() => handleDelete(course.id)}
                       size="sm"
                       variant="ghost"
                       className="text-destructive hover:bg-destructive/10 hover:text-destructive"

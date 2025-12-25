@@ -81,15 +81,15 @@ export default function SequenceRunsPage() {
 
   const sortedRuns = [...runs].sort((a, b) => a.finalTime - b.finalTime)
 
-  const getLegColor = (cpIndex: number, timeFromLast: number) => {
+  const getLegColor = (controlIndex: number, timeFromLast: number) => {
     // Collect all times for this leg across all runners
     const legTimes: number[] = []
 
     runs.forEach((run) => {
       const sortedScans = [...run.correctScans].sort((a, b) => a.expectedIndex - b.expectedIndex)
-      const scan = sortedScans.find((s) => s.expectedIndex === cpIndex)
+      const scan = sortedScans.find((s) => s.expectedIndex === controlIndex)
       if (scan) {
-        const prevScan = cpIndex > 0 ? sortedScans.find((s) => s.expectedIndex === cpIndex - 1) : null
+        const prevScan = controlIndex > 0 ? sortedScans.find((s) => s.expectedIndex === controlIndex - 1) : null
         const legTime = prevScan ? scan.timeFromStart - prevScan.timeFromStart : scan.timeFromStart
         legTimes.push(legTime)
       }
@@ -115,13 +115,13 @@ export default function SequenceRunsPage() {
     return "text-gray-500"
   }
 
-  const getTotalColor = (cpIndex: number, totalTime: number) => {
-    // Collect all total times for this checkpoint across all runners
+  const getTotalColor = (controlIndex: number, totalTime: number) => {
+    // Collect all total times for this control across all runners
     const totalTimes: number[] = []
 
     runs.forEach((run) => {
       const sortedScans = [...run.correctScans].sort((a, b) => a.expectedIndex - b.expectedIndex)
-      const scan = sortedScans.find((s) => s.expectedIndex === cpIndex)
+      const scan = sortedScans.find((s) => s.expectedIndex === controlIndex)
       if (scan) {
         totalTimes.push(scan.timeFromStart)
       }
@@ -151,7 +151,7 @@ export default function SequenceRunsPage() {
     return null
   }
 
-  const numCheckpoints = sequence.entries.length
+  const numControls = sequence.entries.length
 
   return (
     <main className="min-h-screen bg-background p-4 md:p-8">
@@ -242,7 +242,7 @@ export default function SequenceRunsPage() {
                   </TableHeader>
                   <TableBody>
                     {sortedRuns.map((run, runIndex) => {
-                      // Sort scans by checkpoint order
+                      // Sort scans by control order
                       const sortedScans = [...run.correctScans].sort((a, b) => a.expectedIndex - b.expectedIndex)
 
                       return (
@@ -256,28 +256,28 @@ export default function SequenceRunsPage() {
                           <TableCell className="font-mono text-sm font-bold tabular-nums">
                             {formatTime(run.finalTime)}
                           </TableCell>
-                          {Array.from({ length: numCheckpoints }).map((_, cpIndex) => {
-                            const scan = sortedScans.find((s) => s.expectedIndex === cpIndex)
+                          {Array.from({ length: numControls }).map((_, controlIndex) => {
+                            const scan = sortedScans.find((s) => s.expectedIndex === controlIndex)
                             if (!scan) {
                               return (
-                                <TableCell key={cpIndex} className="text-center text-muted-foreground">
+                                <TableCell key={controlIndex} className="text-center text-muted-foreground">
                                   —
                                 </TableCell>
                               )
                             }
 
                             const prevScan =
-                              cpIndex > 0 ? sortedScans.find((s) => s.expectedIndex === cpIndex - 1) : null
+                              controlIndex > 0 ? sortedScans.find((s) => s.expectedIndex === controlIndex - 1) : null
                             const legTimeMs = prevScan
                               ? scan.timeFromStart - prevScan.timeFromStart
                               : scan.timeFromStart
                             const timeFromLast = formatTime(legTimeMs)
 
-                            const colorClass = getLegColor(cpIndex, legTimeMs)
-                            const totalColorClass = getTotalColor(cpIndex, scan.timeFromStart)
+                            const colorClass = getLegColor(controlIndex, legTimeMs)
+                            const totalColorClass = getTotalColor(controlIndex, scan.timeFromStart)
 
                             return (
-                              <TableCell key={cpIndex} className="text-center">
+                              <TableCell key={controlIndex} className="text-center">
                                 <div className="flex flex-col gap-1">
                                   <span className={`font-mono text-xs font-semibold ${colorClass}`}>
                                     {timeFromLast}
