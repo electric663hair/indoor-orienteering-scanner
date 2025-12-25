@@ -33,8 +33,8 @@ interface ScanData {
 interface SharedRun {
   id: string
   runnerName: string
-  sequenceId: string
-  sequenceName: string
+  courseId: string
+  courseName: string
   finalTime: number
   correctScans: Array<{
     data: string
@@ -45,9 +45,9 @@ interface SharedRun {
 }
 
 export default function PlayPage() {
-  const [expectedSequence, setExpectedSequence] = useState<string[]>([])
-  const [sequenceName, setSequenceName] = useState("")
-  const [sequenceId, setSequenceId] = useState("")
+  const [expectedCourse, setExpectedCourse] = useState<string[]>([])
+  const [courseName, setCourseName] = useState("")
+  const [courseId, setCourseId] = useState("")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
   const [isCompleted, setIsCompleted] = useState(false)
@@ -64,13 +64,13 @@ export default function PlayPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const stored = localStorage.getItem("qr-sequence")
-    const storedName = localStorage.getItem("current-sequence-name")
-    const storedId = localStorage.getItem("current-sequence-id")
+    const stored = localStorage.getItem("qr-course")
+    const storedName = localStorage.getItem("current-course-name")
+    const storedId = localStorage.getItem("current-course-id")
     if (stored) {
-      setExpectedSequence(JSON.parse(stored))
-      setSequenceName(storedName || "Unknown Sequence")
-      setSequenceId(storedId || "")
+      setExpectedCourse(JSON.parse(stored))
+      setCourseName(storedName || "Unknown Course")
+      setCourseId(storedId || "")
     } else {
       router.push("/")
     }
@@ -129,7 +129,7 @@ export default function PlayPage() {
     const timeFromStart = timestamp - startTimeRef.current
 
     setCurrentIndex((prevIndex) => {
-      const expectedData = expectedSequence[prevIndex]
+      const expectedData = expectedCourse[prevIndex]
       const isCorrect = data === expectedData
 
       const newScan: ScanData = {
@@ -144,7 +144,7 @@ export default function PlayPage() {
       setScans((prev) => [newScan, ...prev])
 
       if (isCorrect) {
-        if (prevIndex === expectedSequence.length - 1) {
+        if (prevIndex === expectedCourse.length - 1) {
           completionStartTimeRef.current = startTimeRef.current
           setIsRunning(false)
           setIsCompleted(true)
@@ -165,7 +165,7 @@ export default function PlayPage() {
 
           startTimeRef.current = null
           return prevIndex
-        } else if (prevIndex < expectedSequence.length - 1) {
+        } else if (prevIndex < expectedCourse.length - 1) {
           const nextIndex = prevIndex + 1
           return nextIndex
         }
@@ -199,8 +199,8 @@ export default function PlayPage() {
     const sharedRun: SharedRun = {
       id: crypto.randomUUID(),
       runnerName: runnerName || "Anonymous",
-      sequenceId: sequenceId,
-      sequenceName: sequenceName,
+      courseId: courseId,
+      courseName: courseName,
       finalTime: completionTime,
       correctScans,
       completedAt: Date.now(),
@@ -208,7 +208,7 @@ export default function PlayPage() {
 
     console.log("[v0] Shared run object:", sharedRun)
 
-    const localRunsKey = `local-runs-${sequenceId}`
+    const localRunsKey = `local-runs-${courseId}`
     const savedLocalRuns = localStorage.getItem(localRunsKey)
     const localRuns = savedLocalRuns ? JSON.parse(savedLocalRuns) : []
     localRuns.push(sharedRun)
@@ -255,8 +255,8 @@ export default function PlayPage() {
     const sharedRun: SharedRun = {
       id: crypto.randomUUID(),
       runnerName: runnerName || "Anonymous",
-      sequenceId: sequenceId,
-      sequenceName: sequenceName,
+      courseId: courseId,
+      courseName: courseName,
       finalTime: finalTime,
       correctScans,
       completedAt: Date.now(),
@@ -278,7 +278,7 @@ export default function PlayPage() {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`
   }
 
-  if (expectedSequence.length === 0) {
+  if (expectedCourse.length === 0) {
     return null
   }
 
@@ -417,7 +417,7 @@ export default function PlayPage() {
             <Link href="/" className="flex-1">
               <Button variant="outline" size="lg" className="w-full gap-2 bg-transparent">
                 <ArrowLeft className="h-5 w-5" />
-                Back to Sequences
+                Back to Courses
               </Button>
             </Link>
           </div>
@@ -471,7 +471,7 @@ export default function PlayPage() {
               <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">Play Run</h1>
             </div>
             <p className="mt-1 ml-14 text-muted-foreground">
-              Scan QR codes in sequence ({completedCount}/{expectedSequence.length} completed)
+              Scan QR codes in course ({completedCount}/{expectedCourse.length} completed)
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -502,7 +502,7 @@ export default function PlayPage() {
                 <XCircle className="h-16 w-16 text-destructive" />
                 <div>
                   <h3 className="text-2xl font-bold text-destructive">Wrong!</h3>
-                  <p className="text-muted-foreground">That QR code doesn't match the expected sequence</p>
+                  <p className="text-muted-foreground">That QR code doesn't match the expected course</p>
                 </div>
               </CardContent>
             </Card>
@@ -545,13 +545,13 @@ export default function PlayPage() {
                       />
                     </svg>
                   </div>
-                  Expected Sequence
+                  Expected Course
                 </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {expectedSequence.map((entry, index) => {
+                {expectedCourse.map((entry, index) => {
                   const scan = scans.find((s) => s.isCorrect && s.expectedIndex === index)
                   const isCompletedScan = scan !== undefined
                   const isCurrentIndex = index === currentIndex && isRunning
