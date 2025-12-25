@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ArrowLeft, Trophy, Trash2 } from "lucide-react"
+import { ArrowLeft, Trophy, Trash2, ChevronDown, ChevronUp, Download } from "lucide-react"
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import QRCode from "qrcode" // Import QRCode library for admin feature
+import QRCode from "qrcode"
+import jsPDF from "jspdf"
 
 interface SharedRun {
   id: string
@@ -36,7 +37,8 @@ export default function SequenceRunsPage() {
   const sequenceId = params.id as string
   const [runs, setRuns] = useState<SharedRun[]>([])
   const [sequence, setSequence] = useState<SavedSequence | null>(null)
-  const [isAdminMode, setIsAdminMode] = useState(false) // Add admin mode state
+  const [isAdminMode, setIsAdminMode] = useState(false)
+  const [showAdminQrCodes, setShowAdminQrCodes] = useState(true)
 
   useEffect(() => {
     const adminMode = localStorage.getItem("admin") === "true" // Check for admin mode
@@ -80,6 +82,66 @@ export default function SequenceRunsPage() {
   }
 
   const sortedRuns = [...runs].sort((a, b) => a.finalTime - b.finalTime)
+
+  const handleDownloadPDF = async () => {
+    if (!sequence) return
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    })
+
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const margin = 10
+    const qrSize = 35
+    const spacing = 5
+    const cols = 4
+    const rows = 6
+
+    pdf.setFontSize(16)
+    pdf.text(sequence.name, pageWidth / 2, margin + 5, { align: "center" })
+
+    let currentX = margin
+    let currentY = margin + 15
+    let pageItemCount = 0
+
+    for (let index = 0; index < sequence.entries.length; index++) {
+      const data = sequence.entries[index]
+
+      if (pageItemCount >= cols * rows) {
+        pdf.addPage()
+        currentX = margin
+        currentY = margin
+        pageItemCount = 0
+      }
+
+      try {
+        const qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 1 })
+        pdf.addImage(qrDataUrl, "PNG", currentX, currentY, qrSize, qrSize)
+
+        pdf.setFontSize(8)
+        pdf.text(data, currentX + qrSize / 2, currentY + qrSize + 3, { align: "center" })
+
+        pdf.setFontSize(7)
+        const label = index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : `#${index}`
+        pdf.text(label, currentX + qrSize / 2, currentY + qrSize + 6, { align: "center" })
+      } catch (error) {
+        console.error("Error generating QR code for PDF:", error)
+      }
+
+      currentX += qrSize + spacing
+      pageItemCount++
+
+      if (pageItemCount % cols === 0) {
+        currentX = margin
+        currentY += qrSize + 10
+      }
+    }
+
+    pdf.save(`${sequence.name}-qr-codes.pdf`)
+  }
 
   const getLegColor = (controlIndex: number, timeFromLast: number) => {
     // Collect all times for this leg across all runners
@@ -179,25 +241,53 @@ export default function SequenceRunsPage() {
         {isAdminMode && sequence && (
           <Card className="border-2 border-primary/20">
             <CardHeader>
-              <CardTitle className="text-xl text-primary">Admin: Control QR Codes</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl text-primary">Admin: Control QR Codes</CardTitle>
+                <div className="flex gap-2">
+                  <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="gap-2 bg-transparent">
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </Button>
+                  <Button
+                    onClick={() => setShowAdminQrCodes(!showAdminQrCodes)}
+                    size="sm"
+                    variant="ghost"
+                    className="gap-2"
+                  >
+                    {showAdminQrCodes ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Hide
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Show
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {sequence.entries.map((data, index) => (
-                  <div key={index} className="flex flex-col items-center gap-2 rounded-lg border bg-card p-4">
-                    <div className="rounded-lg bg-white p-2">
-                      <QRCodeCanvas value={data} size={120} />
-                    </div>
-                    <div className="text-center">
-                      <div className="mt-1 font-mono text-sm font-bold">{data}</div>
-                      <div className="text-xs font-semibold text-muted-foreground">
-                        {index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""}
+            {showAdminQrCodes && (
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {sequence.entries.map((data, index) => (
+                    <div key={index} className="flex flex-col items-center gap-2 rounded-lg border bg-card p-4">
+                      <div className="rounded-lg bg-white p-2">
+                        <QRCodeCanvas value={data} size={120} />
+                      </div>
+                      <div className="text-center">
+                        <div className="mt-1 font-mono text-sm font-bold">{data}</div>
+                        <div className="text-xs font-semibold text-muted-foreground">
+                          {index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
+                  ))}
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
 
