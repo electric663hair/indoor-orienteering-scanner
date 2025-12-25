@@ -45,7 +45,7 @@ export default function SequenceRunsPage() {
     setIsAdminMode(adminMode)
 
     // Load sequence details
-    const savedSequences = localStorage.getItem("saved-sequences")
+    const savedSequences = localStorage.getItem("saved-courses")
     if (savedSequences) {
       const sequences: SavedSequence[] = JSON.parse(savedSequences)
       const foundSequence = sequences.find((s) => s.id === sequenceId)
@@ -73,6 +73,21 @@ export default function SequenceRunsPage() {
     localStorage.setItem(localRunsKey, JSON.stringify(updated))
   }
 
+  const handleDownloadQRCode = async (data: string, index: number) => {
+    try {
+      const qrDataUrl = await QRCode.toDataURL(data, { width: 300, margin: 1 })
+      const link = document.createElement("a")
+      link.href = qrDataUrl
+      const label = index === 0 ? "Start" : index === sequence!.entries.length - 1 ? "Finish" : `Control-${index}`
+      link.download = `${sequence!.name}-${label}-${data}.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error("Error downloading QR code:", error)
+    }
+  }
+
   const formatTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000)
     const minutes = Math.floor(totalSeconds / 60)
@@ -95,10 +110,10 @@ export default function SequenceRunsPage() {
     const pageWidth = pdf.internal.pageSize.getWidth()
     const pageHeight = pdf.internal.pageSize.getHeight()
     const margin = 10
-    const qrSize = 35
+    const qrSize = 55
     const spacing = 5
-    const cols = 4
-    const rows = 6
+    const cols = 3
+    const rows = 5
 
     pdf.setFontSize(16)
     pdf.text(sequence.name, pageWidth / 2, margin + 5, { align: "center" })
@@ -110,7 +125,8 @@ export default function SequenceRunsPage() {
     for (let index = 0; index < sequence.entries.length; index++) {
       const data = sequence.entries[index]
 
-      if (pageItemCount >= cols * rows) {
+      // Check if we need to move to the next page (either by item count or by vertical space)
+      if (pageItemCount >= cols * rows || currentY + qrSize + 10 > pageHeight - margin) {
         pdf.addPage()
         currentX = margin
         currentY = margin
@@ -125,7 +141,7 @@ export default function SequenceRunsPage() {
         pdf.text(data, currentX + qrSize / 2, currentY + qrSize + 3, { align: "center" })
 
         pdf.setFontSize(7)
-        const label = index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : `#${index}`
+        const label = index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""
         pdf.text(label, currentX + qrSize / 2, currentY + qrSize + 6, { align: "center" })
       } catch (error) {
         console.error("Error generating QR code for PDF:", error)
@@ -209,6 +225,13 @@ export default function SequenceRunsPage() {
     return "text-gray-500"
   }
 
+  const getShareUrl = () => {
+    if (!sequence) return ""
+    const encodedEntries = encodeURIComponent(JSON.stringify(sequence.entries))
+    const encodedName = encodeURIComponent(sequence.name)
+    return `${typeof window !== "undefined" ? window.location.origin : ""}?course=${encodedEntries}&name=${encodedName}&id=${sequence.id}`
+  }
+
   if (!sequence) {
     return null
   }
@@ -283,6 +306,15 @@ export default function SequenceRunsPage() {
                           {index === 0 ? "Start" : index === sequence.entries.length - 1 ? "Finish" : ""}
                         </div>
                       </div>
+                      <Button
+                        onClick={() => handleDownloadQRCode(data, index)}
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 w-full gap-2"
+                      >
+                        <Download className="h-3 w-3" />
+                        Download
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -290,6 +322,28 @@ export default function SequenceRunsPage() {
             )}
           </Card>
         )}
+
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="text-xl">Course QR Code</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <p className="text-center text-sm text-muted-foreground">
+              Share this QR code to let others access this course
+            </p>
+            <div className="rounded-lg bg-white p-4">
+              <QRCodeCanvas value={getShareUrl()} size={200} />
+            </div>
+            <Button
+              onClick={() => handleDownloadQRCode(getShareUrl(), -1)}
+              variant="outline"
+              className="gap-2 bg-transparent"
+            >
+              <Download className="h-4 w-4" />
+              Download Course QR Code
+            </Button>
+          </CardContent>
+        </Card>
 
         {runs.length === 0 ? (
           <Card className="border-2">

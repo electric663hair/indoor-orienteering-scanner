@@ -38,7 +38,7 @@ export default function CreatePage() {
 
     const name = sequenceName.trim() || `Sequence ${new Date().toLocaleDateString()}`
 
-    const savedSequences = JSON.parse(localStorage.getItem("saved-sequences") || "[]")
+    const savedSequences = JSON.parse(localStorage.getItem("saved-courses") || "[]")
 
     const newSequence = {
       id: crypto.randomUUID(),
@@ -48,14 +48,14 @@ export default function CreatePage() {
     }
 
     savedSequences.push(newSequence)
-    localStorage.setItem("saved-sequences", JSON.stringify(savedSequences))
+    localStorage.setItem("saved-courses", JSON.stringify(savedSequences))
 
     router.push("/")
   }
 
   const handlePlay = () => {
     if (entries.length > 0) {
-      localStorage.setItem("qr-sequence", JSON.stringify(entries))
+      localStorage.setItem("qr-courses", JSON.stringify(entries))
       router.push("/play")
     }
   }
