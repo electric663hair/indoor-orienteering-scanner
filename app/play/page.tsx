@@ -53,14 +53,15 @@ export default function PlayPage() {
   const [isCompleted, setIsCompleted] = useState(false)
   const [scans, setScans] = useState<ScanData[]>([])
   const [finalTime, setFinalTime] = useState(0)
-  const [showWrongPopup, setShowWrongPopup] = useState(false)
   const [showNameDialog, setShowNameDialog] = useState(false)
   const [runnerName, setRunnerName] = useState("")
   const [tempName, setTempName] = useState("")
   const [shareQrCode, setShareQrCode] = useState("")
   const [copiedShareLink, setCopiedShareLink] = useState(false)
+  const [scanStatus, setScanStatus] = useState<"searching" | "correct" | "wrong">("searching")
   const startTimeRef = useRef<number | null>(null)
   const completionStartTimeRef = useRef<number | null>(null)
+  const scanStatusTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -143,6 +144,21 @@ export default function PlayPage() {
 
       setScans((prev) => [newScan, ...prev])
 
+      // Update scan status
+      if (isCorrect) {
+        setScanStatus("correct")
+      } else {
+        setScanStatus("wrong")
+      }
+
+      // Reset status to searching after 1.5 seconds
+      if (scanStatusTimeoutRef.current) {
+        clearTimeout(scanStatusTimeoutRef.current)
+      }
+      scanStatusTimeoutRef.current = setTimeout(() => {
+        setScanStatus("searching")
+      }, 1500)
+
       if (isCorrect) {
         if (prevIndex === expectedCourse.length - 1) {
           completionStartTimeRef.current = startTimeRef.current
@@ -171,8 +187,6 @@ export default function PlayPage() {
         }
         return prevIndex
       } else {
-        setShowWrongPopup(true)
-        setTimeout(() => setShowWrongPopup(false), 2000)
         return prevIndex
       }
     })
@@ -495,20 +509,6 @@ export default function PlayPage() {
           </div>
         </div>
 
-        {showWrongPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <Card className="border-4 border-destructive shadow-2xl">
-              <CardContent className="flex items-center gap-4 p-8">
-                <XCircle className="h-16 w-16 text-destructive" />
-                <div>
-                  <h3 className="text-2xl font-bold text-destructive">Wrong!</h3>
-                  <p className="text-muted-foreground">That QR code doesn't match the expected course</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="border-2">
             <CardHeader>
@@ -527,7 +527,20 @@ export default function PlayPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <QrScanner isActive={isRunning} onScan={handleScan} />
+              <div className="relative">
+                <QrScanner isActive={isRunning} onScan={handleScan} />
+                <div className="absolute bottom-4 right-4 flex h-16 w-16 items-center justify-center rounded-full border-2 bg-white shadow-lg">
+                  {scanStatus === "searching" && (
+                    <div className="h-10 w-10 rounded-full bg-blue-500 animate-pulse"></div>
+                  )}
+                  {scanStatus === "correct" && (
+                    <CheckCircle2 className="h-10 w-10 text-green-600" strokeWidth={2.5} />
+                  )}
+                  {scanStatus === "wrong" && (
+                    <XCircle className="h-10 w-10 text-red-600" strokeWidth={2.5} />
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
