@@ -147,8 +147,14 @@ export default function PlayPage() {
       // Update scan status
       if (isCorrect) {
         setScanStatus("correct")
+        // Play correct sound
+        const correctAudio = new Audio("/correct.mp3")
+        correctAudio.play().catch((error) => console.log("Error playing correct sound:", error))
       } else {
         setScanStatus("wrong")
+        // Play wrong sound
+        const wrongAudio = new Audio("/wrong.mp3")
+        wrongAudio.play().catch((error) => console.log("Error playing wrong sound:", error))
       }
 
       // Reset status to searching after 1.5 seconds
