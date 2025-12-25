@@ -30,7 +30,6 @@ export default function ImportPage() {
   const router = useRouter()
 
   const handleScan = (data: string) => {
-    console.log(data)
     try {
       // Parse the URL to extract the import parameter
       const url = new URL(data, window.location.origin)
@@ -44,34 +43,33 @@ export default function ImportPage() {
       }
 
       // Decode the run data
-      const decodedData = JSON.parse(decodeURIComponent(encodedRun))
-      console.log(decodedData)
-    //   const run: SharedRun = decodedRun
+      const decodedRun = JSON.parse(decodeURIComponent(encodedRun))
+      const run: SharedRun = decodedRun
 
-    //   // Validate the run has required fields
-    //   if (!run.id || !run.courseId || !run.runnerName) {
-    //     setImportStatus("error")
-    //     setImportMessage("Invalid run data. Missing required fields.")
-    //     setScannerActive(false)
-    //     return
-    //   }
+      // Validate the run has required fields
+      if (!run.id || !run.courseId || !run.runnerName) {
+        setImportStatus("error")
+        setImportMessage("Invalid run data. Missing required fields.")
+        setScannerActive(false)
+        return
+      }
 
-    //   // Save the run to localStorage
-    //   const localRunsKey = `local-runs-${run.courseId}`
-    //   const savedRuns = localStorage.getItem(localRunsKey)
-    //   const runs = savedRuns ? JSON.parse(savedRuns) : []
-    //   runs.push(run)
-    //   localStorage.setItem(localRunsKey, JSON.stringify(runs))
+      // Save the run to localStorage
+      const localRunsKey = `local-runs-${run.courseId}`
+      const savedRuns = localStorage.getItem(localRunsKey)
+      const runs = savedRuns ? JSON.parse(savedRuns) : []
+      runs.push(run)
+      localStorage.setItem(localRunsKey, JSON.stringify(runs))
 
-    //   setImportedRun(run)
-    //   setImportStatus("success")
-    //   setImportMessage(`Successfully imported run by ${run.runnerName}!`)
-    //   setScannerActive(false)
+      setImportedRun(run)
+      setImportStatus("success")
+      setImportMessage(`Successfully imported run by ${run.runnerName}!`)
+      setScannerActive(false)
 
-    //   // Redirect to the course page after a short delay
-    //   setTimeout(() => {
-    //     router.push(`/course-runs/${run.courseId}`)
-    //   }, 2000)
+      // Redirect to the course page after a short delay
+      setTimeout(() => {
+        router.push(`/course-runs/${run.courseId}`)
+      }, 2000)
     } catch (error) {
       console.error("Error importing run:", error)
       setImportStatus("error")
