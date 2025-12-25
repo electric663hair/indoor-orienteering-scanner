@@ -62,7 +62,15 @@ export default function PlayPage() {
   const startTimeRef = useRef<number | null>(null)
   const completionStartTimeRef = useRef<number | null>(null)
   const scanStatusTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const correctAudioRef = useRef<HTMLAudioElement | null>(null)
+  const wrongAudioRef = useRef<HTMLAudioElement | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    // Pre-load audio files
+    correctAudioRef.current = new Audio("/correct.mp3")
+    wrongAudioRef.current = new Audio("/wrong.mp3")
+  }, [])
 
   useEffect(() => {
     const stored = localStorage.getItem("qr-course")
@@ -148,13 +156,17 @@ export default function PlayPage() {
       if (isCorrect) {
         setScanStatus("correct")
         // Play correct sound
-        const correctAudio = new Audio("/correct.mp3")
-        correctAudio.play().catch((error) => console.log("Error playing correct sound:", error))
+        if (correctAudioRef.current) {
+          correctAudioRef.current.currentTime = 0
+          correctAudioRef.current.play().catch((error) => console.log("Error playing correct sound:", error))
+        }
       } else {
         setScanStatus("wrong")
         // Play wrong sound
-        const wrongAudio = new Audio("/wrong.mp3")
-        wrongAudio.play().catch((error) => console.log("Error playing wrong sound:", error))
+        if (wrongAudioRef.current) {
+          wrongAudioRef.current.currentTime = 0
+          wrongAudioRef.current.play().catch((error) => console.log("Error playing wrong sound:", error))
+        }
       }
 
       // Reset status to searching after 1.5 seconds

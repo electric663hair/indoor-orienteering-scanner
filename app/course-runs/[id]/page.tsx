@@ -373,7 +373,7 @@ export default function SequenceRunsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[60px]">Rank</TableHead>
+                      {/* <TableHead className="w-[60px]">Rank</TableHead> */}
                       <TableHead className="min-w-[150px]">Runner</TableHead>
                       <TableHead className="w-[120px]">Total Time</TableHead>
                       {sequence.entries.map((data, index) => (
@@ -391,11 +391,11 @@ export default function SequenceRunsPage() {
 
                       return (
                         <TableRow key={run.id}>
-                          <TableCell>
+                          {/* <TableCell>
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                               {runIndex + 1}
                             </div>
-                          </TableCell>
+                          </TableCell> */}
                           <TableCell className="font-semibold">{run.runnerName}</TableCell>
                           <TableCell className="font-mono text-sm font-bold tabular-nums">
                             {formatTime(run.finalTime)}
